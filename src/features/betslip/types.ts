@@ -141,6 +141,8 @@ export interface BetslipState {
   // Auto-Cashout state
   autoCashoutEnabled: boolean;
   autoCashoutValue: number | null;
+  // Persistence state
+  savedAt: number | null; // Timestamp when betslip was last saved
 }
 
 // Quick bet preset stakes (GHS)

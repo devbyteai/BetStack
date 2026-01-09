@@ -3,6 +3,7 @@ export {
   addSelection,
   removeSelection,
   clearSelections,
+  clearExpiredSelections,
   updateSelectionOdds,
   updateOddsBatch,
   setSelectionStake,

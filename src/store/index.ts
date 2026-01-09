@@ -1,13 +1,31 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from 'redux-persist';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { baseApi } from './api';
 import { authReducer } from '@/features/auth/store';
 import { betslipReducer } from '@/features/betslip/store';
 
+// Persist config for betslip - persists selections with 72hr expiry
+const betslipPersistConfig = {
+  key: 'betslip',
+  storage: AsyncStorage,
+  whitelist: ['selections', 'stakes', 'betType', 'savedAt', 'quickBetEnabled', 'quickBetStake'],
+};
+
 const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
   auth: authReducer,
-  betslip: betslipReducer,
+  betslip: persistReducer(betslipPersistConfig, betslipReducer),
 });
 
 export const store = configureStore({
@@ -15,10 +33,12 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }).concat(baseApi.middleware),
 });
+
+export const persistor = persistStore(store);
 
 // Enable listener behavior for RTK Query
 setupListeners(store.dispatch);

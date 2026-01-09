@@ -3,6 +3,7 @@ import type { BetslipState, BetSelection, BetType, OddsAcceptance, BalanceSource
 
 // Betting limits - should match backend
 const MAX_SELECTIONS = 20;
+const BETSLIP_EXPIRY_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
 
 const initialState: BetslipState = {
   selections: [],
@@ -22,6 +23,8 @@ const initialState: BetslipState = {
   // Auto-Cashout state
   autoCashoutEnabled: false,
   autoCashoutValue: null,
+  // Persistence state
+  savedAt: null,
 };
 
 const betslipSlice = createSlice({
@@ -71,6 +74,8 @@ const betslipSlice = createSlice({
         state.betType = 'multiple';
       }
 
+      // Update savedAt timestamp for persistence expiry
+      state.savedAt = Date.now();
       state.error = null;
     },
 
@@ -93,7 +98,27 @@ const betslipSlice = createSlice({
       state.totalStake = 0;
       state.betType = 'single';
       state.systemVariant = undefined;
+      state.savedAt = null;
       state.error = null;
+    },
+
+    // Clear expired selections (called on app start)
+    clearExpiredSelections: (state) => {
+      if (state.savedAt && state.selections.length > 0) {
+        const now = Date.now();
+        const elapsed = now - state.savedAt;
+
+        if (elapsed > BETSLIP_EXPIRY_MS) {
+          // Betslip has expired - clear it
+          state.selections = [];
+          state.stakes = {};
+          state.totalStake = 0;
+          state.betType = 'single';
+          state.systemVariant = undefined;
+          state.savedAt = null;
+          state.error = null;
+        }
+      }
     },
 
     // Update odds for a selection (real-time update)
@@ -268,6 +293,7 @@ export const {
   addSelection,
   removeSelection,
   clearSelections,
+  clearExpiredSelections,
   updateSelectionOdds,
   updateOddsBatch,
   setSelectionStake,

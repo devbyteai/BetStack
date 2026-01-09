@@ -1,4 +1,4 @@
-import { baseApi } from '@/shared/api/baseApi';
+import { baseApi } from '@/store/api/baseApi';
 import type {
   Job,
   JobApplication,

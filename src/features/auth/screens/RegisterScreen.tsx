@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Input } from '@/shared/components';
+import { Button, Input, ReCaptcha } from '@/shared/components';
+import type { ReCaptchaRef } from '@/shared/components';
 import { COLORS, SPACING, FONT_SIZES } from '@/shared/constants';
 import { useRegisterMutation } from '../api/authApi';
 
@@ -31,7 +32,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
+  const recaptchaRef = useRef<ReCaptchaRef>(null);
   const [register, { isLoading }] = useRegisterMutation();
 
   const updateField = (field: string, value: string) => {
@@ -75,9 +79,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRegister = async () => {
-    if (!validate()) return;
+  const handleCaptchaVerify = useCallback(async (token: string) => {
+    setCaptchaToken(token);
+    setIsVerifying(false);
 
+    // Now proceed with registration using the token
     try {
       await register({
         mobileNumber: formData.mobileNumber,
@@ -85,12 +91,26 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
         confirmPassword: formData.confirmPassword,
         firstName: formData.firstName || undefined,
         lastName: formData.lastName || undefined,
+        captchaToken: token,
       }).unwrap();
       // Navigation will be handled by auth state change
     } catch (error: unknown) {
       const err = error as { data?: { error?: { message?: string } } };
       Alert.alert('Registration Failed', err.data?.error?.message || 'Something went wrong');
     }
+  }, [formData, register]);
+
+  const handleCaptchaError = useCallback((error: string) => {
+    setIsVerifying(false);
+    Alert.alert('Verification Failed', error);
+  }, []);
+
+  const handleRegister = async () => {
+    if (!validate()) return;
+
+    // Execute reCAPTCHA verification
+    setIsVerifying(true);
+    recaptchaRef.current?.execute();
   };
 
   return (
@@ -174,11 +194,19 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             <Button
               title="Create Account"
               onPress={handleRegister}
-              loading={isLoading}
+              loading={isLoading || isVerifying}
               fullWidth
               style={styles.registerButton}
             />
           </View>
+
+          {/* Invisible reCAPTCHA */}
+          <ReCaptcha
+            ref={recaptchaRef}
+            onVerify={handleCaptchaVerify}
+            onError={handleCaptchaError}
+            action="register"
+          />
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>

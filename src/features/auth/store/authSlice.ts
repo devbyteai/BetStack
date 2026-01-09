@@ -5,11 +5,25 @@ import { authApi } from '../api/authApi';
 import type { AuthState, User, Wallet } from '../types';
 import type { RootState } from '@/store';
 
+// DEMO MODE: Bypassing auth for UI preview
 const initialState: AuthState = {
-  user: null,
-  wallet: null,
-  isAuthenticated: false,
-  isLoading: true,
+  user: {
+    id: 'demo-user',
+    phone: '+1234567890',
+    firstName: 'Demo',
+    lastName: 'User',
+    email: 'demo@betstack.com',
+    isVerified: true,
+    createdAt: new Date().toISOString(),
+  },
+  wallet: {
+    id: 'demo-wallet',
+    balance: 1500.00,
+    currency: 'USD',
+    bonusBalance: 50.00,
+  },
+  isAuthenticated: true,
+  isLoading: false,
 };
 
 const authSlice = createSlice({

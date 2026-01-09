@@ -3,6 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, Animated, View } from 'react-native
 import { COLORS, SPACING, FONT_SIZES } from '@/shared/constants';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useOddsFormat } from '@/shared/hooks/useOddsFormat';
+import { hapticService } from '@/shared/services';
 import {
   addSelection,
   selectIsSelectionInBetslip,
@@ -81,6 +82,9 @@ export const OddsButton: React.FC<OddsButtonProps> = ({
 
   const handlePress = useCallback(() => {
     if (disabled || isSuspended) return;
+
+    // Haptic feedback on odds selection
+    hapticService.onOddsSelect();
 
     const selection: BetSelection = {
       id: `${gameId}-${marketId}-${eventId}`,

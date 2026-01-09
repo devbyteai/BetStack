@@ -78,6 +78,15 @@ export const authApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<{ success: boolean; message: string }>) => response.data,
     }),
+
+    registerFcmToken: builder.mutation<{ success: boolean }, { token: string }>({
+      query: (data) => ({
+        url: '/auth/fcm-token',
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<{ success: boolean }>) => response.data,
+    }),
   }),
 });
 
@@ -89,4 +98,5 @@ export const {
   useSendOtpMutation,
   useVerifyOtpMutation,
   useResetPasswordMutation,
+  useRegisterFcmTokenMutation,
 } = authApi;

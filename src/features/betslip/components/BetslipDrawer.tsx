@@ -47,8 +47,19 @@ import { usePlaceBetMutation, useCreateBookingMutation } from '../api';
 import { useGetWalletQuery } from '@/features/wallet/api';
 import { useGetFreeBetsQuery } from '@/features/bonuses/api';
 import { useLiveOdds, useOddsFormat } from '@/shared/hooks';
+import { hapticService } from '@/shared/services';
 import type { BetType } from '../types';
 import type { FreeBet } from '@/features/bonuses/types';
+
+// Accumulator bonus tiers (based on selection count)
+const getAccumulatorBonus = (selectionCount: number): number => {
+  if (selectionCount < 3) return 0;
+  if (selectionCount === 3) return 5;
+  if (selectionCount === 4) return 10;
+  if (selectionCount === 5) return 15;
+  if (selectionCount >= 6) return 20;
+  return 0;
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -204,6 +215,9 @@ export const BetslipDrawer: React.FC = () => {
       dispatch(clearAutoCashout());
       dispatch(closeBetslip());
       setSelectedFreeBet(null); // Clear selected free bet
+
+      // Haptic feedback on successful bet placement
+      hapticService.onBetPlaced();
 
       Alert.alert(
         'Bet Placed!',
@@ -479,12 +493,28 @@ export const BetslipDrawer: React.FC = () => {
               <Text style={styles.summaryLabel}>Total Odds</Text>
               <Text style={styles.summaryValue}>{formatOdds(totalOdds)}</Text>
             </View>
+            {/* Accumulator Bonus Display */}
+            {betType === 'multiple' && selections.length >= 3 && (
+              <View style={styles.bonusRow}>
+                <View style={styles.bonusLabelContainer}>
+                  <Text style={styles.bonusLabel}>Acca Bonus</Text>
+                  <View style={styles.bonusBadge}>
+                    <Text style={styles.bonusBadgeText}>+{getAccumulatorBonus(selections.length)}%</Text>
+                  </View>
+                </View>
+                <Text style={styles.bonusValue}>
+                  +{((potentialWin * getAccumulatorBonus(selections.length)) / 100).toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Potential Win</Text>
               <Text style={styles.summaryValueHighlight}>
                 {selectedFreeBet
                   ? (selectedFreeBet.amount * totalOdds).toFixed(2)
-                  : potentialWin.toFixed(2)}
+                  : betType === 'multiple' && selections.length >= 3
+                    ? (potentialWin * (1 + getAccumulatorBonus(selections.length) / 100)).toFixed(2)
+                    : potentialWin.toFixed(2)}
               </Text>
             </View>
             {/* Insufficient balance warning - only when not using free bet */}
@@ -880,6 +910,45 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   freeBetActiveValue: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.success,
+    fontWeight: 'bold',
+  },
+  // Accumulator Bonus styles
+  bonusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.success,
+  },
+  bonusLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  bonusLabel: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.success,
+    fontWeight: '600',
+  },
+  bonusBadge: {
+    backgroundColor: COLORS.success,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  bonusBadgeText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textOnPrimary,
+    fontWeight: 'bold',
+  },
+  bonusValue: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.success,
     fontWeight: 'bold',
